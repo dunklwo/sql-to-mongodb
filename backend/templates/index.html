@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SQL to MongoDB Converter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Syne:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #f5f4f0;
+      --card: #ffffff;
+      --border: #e0ddd6;
+      --text-primary: #1a1916;
+      --text-secondary: #6b6860;
+      --accent: #2d6a4f;
+      --accent-light: #e8f4ef;
+      --accent-hover: #1f4f3a;
+      --mono-bg: #f9f8f6;
+      --error: #c0392b;
+      --error-bg: #fdf2f0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.07);
+    }
+
+    body {
+      background-color: var(--bg);
+      font-family: 'Syne', sans-serif;
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    /* Subtle dot-grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, #c8c5bc 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 660px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-light);
+      border: 1px solid #b7dcc9;
+      border-radius: 100px;
+      padding: 0.3rem 0.85rem;
+      margin-bottom: 0.85rem;
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 2.4rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.15;
+    }
+
+    h1 span {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      margin-top: 0.5rem;
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      font-family: 'Syne', sans-serif;
+      font-weight: 400;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+    }
+
+    /* Section labels */
+    .label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 0.6rem;
+    }
+
+    .label-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* Textarea */
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      padding: 0.9rem 1rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      background: var(--mono-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      line-height: 1.6;
+    }
+
+    textarea::placeholder {
+      color: #b0ada6;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+    }
+
+    /* Button */
+    .btn-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    button {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: 9px;
+      padding: 0.65rem 1.5rem;
+      cursor: pointer;
+      transition: background 0.18s, transform 0.12s, opacity 0.18s;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    button.loading .spinner { display: block; }
+    button.loading .btn-text { opacity: 0.8; }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    /* Output */
+    .output-wrapper {
+      position: relative;
+    }
+
+    pre#output {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.83rem;
+      line-height: 1.65;
+      background: var(--mono-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      min-height: 80px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text-primary);
+      transition: border-color 0.2s;
+    }
+
+    pre#output.has-result {
+      border-color: #b7dcc9;
+      background: #f4fbf7;
+    }
+
+    pre#output.has-error {
+      border-color: #e8b4ad;
+      background: var(--error-bg);
+      color: var(--error);
+    }
+
+    .placeholder-text {
+      color: #b0ada6;
+      font-style: italic;
+    }
+
+    /* Copy button */
+    .copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      background: #fff;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.25rem 0.6rem;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.18s, color 0.15s;
+      letter-spacing: 0.04em;
+    }
+
+    .output-wrapper:hover .copy-btn {
+      opacity: 1;
+    }
+
+    .copy-btn:hover {
+      color: var(--accent);
+      border-color: #b7dcc9;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: #b0ada6;
+      letter-spacing: 0.03em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <div class="header">
+      <div class="badge">Query Translator</div>
+      <h1>SQL to <span>MongoDB</span></h1>
+      <p class="subtitle">Paste a SQL query and get the equivalent MongoDB syntax instantly.</p>
+    </div>
+
+    <div class="card">
+
+      <!-- Input -->
+      <div class="label"><span class="label-dot"></span>SQL Query</div>
+      <textarea
+        id="sqlInput"
+        placeholder="e.g. SELECT * FROM users WHERE age > 25 ORDER BY name ASC"
+        spellcheck="false"
+        oninput="handleInput()"
+      ></textarea>
+
+      <div class="btn-row">
+        <button id="convertBtn" onclick="convertQuery()" disabled>
+          <span class="spinner"></span>
+          <span class="btn-text">Convert</span>
+        </button>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- Output -->
+      <div class="label"><span class="label-dot"></span>MongoDB Query</div>
+      <div class="output-wrapper">
+        <pre id="output"><span class="placeholder-text">Your result will appear here…</span></pre>
+        <button class="copy-btn" id="copyBtn" onclick="copyOutput()">copy</button>
+      </div>
+
+    </div>
+
+    <p class="footer">SQL to MongoDB Converter &mdash; College Project</p>
+
+  </div>
+
+  <script>
+    const sqlInput   = document.getElementById('sqlInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const output     = document.getElementById('output');
+    const copyBtn    = document.getElementById('copyBtn');
+
+    function handleInput() {
+      convertBtn.disabled = sqlInput.value.trim() === '';
+    }
+
+    function setLoading(on) {
+      convertBtn.classList.toggle('loading', on);
+      convertBtn.disabled = on;
+      if (on) {
+        convertBtn.querySelector('.btn-text').textContent = 'Converting…';
+      } else {
+        convertBtn.querySelector('.btn-text').textContent = 'Convert';
+        convertBtn.disabled = sqlInput.value.trim() === '';
+      }
+    }
+
+    async function convertQuery() {
+      const query = sqlInput.value.trim();
+      if (!query) return;
+
+      setLoading(true);
+      output.className = '';
+      output.innerHTML = '<span class="placeholder-text">Converting…</span>';
+      copyBtn.style.display = 'none';
+
+      try {
+        const response = await fetch('/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          output.textContent = data.error;
+          output.className = 'has-error';
+          copyBtn.style.display = 'none';
+        } else {
+          output.textContent = data.mongo_query;
+          output.className = 'has-result';
+          copyBtn.style.display = 'block';
+        }
+
+      } catch (err) {
+        output.textContent = 'Error: ' + err.message;
+        output.className = 'has-error';
+        copyBtn.style.display = 'none';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function copyOutput() {
+      const text = output.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = 'copied!';
+        setTimeout(() => { copyBtn.textContent = 'copy'; }, 1800);
+      });
+    }
+
+    // Allow Ctrl+Enter to convert
+    sqlInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (!convertBtn.disabled) convertQuery();
+      }
+    });
+  </script>
+
+</body>
+</html>

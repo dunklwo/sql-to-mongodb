@@ -1,0 +1,21 @@
+body {
+    font-family: Arial;
+    text-align: center;
+    padding: 40px;
+}
+
+textarea {
+    width: 60%;
+    height: 100px;
+    margin: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+pre {
+    background: #f4f4f4;
+    padding: 20px;
+}
