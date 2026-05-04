@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from parser import parse_sql
-from converter import convert_to_mongo
+from backend.parser import parse_sql
+from backend.converter import convert_to_mongo
 
 app = Flask(__name__)
 CORS(app)
